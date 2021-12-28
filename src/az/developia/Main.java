@@ -1,15 +1,13 @@
 package az.developia;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import az.developia.collect.ToListCollector;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toUnmodifiableList;
+import static java.util.stream.Collectors.*;
 
 public class Main {
 
@@ -18,14 +16,6 @@ public class Main {
         menu.add(new Dish("steak", false, 300, Dish.Type.MEAT));
         menu.add(new Dish("fish", false, 400, Dish.Type.FISH));
         menu.add(new Dish("some vegetarian", true, 200, Dish.Type.OTHER));
-//        System.out.println(menu.stream().collect(Collectors.summarizingInt(Dish::getCalories)));
-//        var result = menu
-//                .stream()
-//                .collect(Collectors.reducing((i, j) -> i.getCalories() > j.getCalories() ? i : j));
-//        System.out.println(result.get());
-//        System.out.println(findLowCaloric(menu));
-        System.out.println(findLowCaloricWithStream(menu));
-//        testFibonacci();
     }
 
     public static List<String> findLowCaloric(List<Dish> dishes) {
@@ -83,5 +73,68 @@ public class Main {
         Stream.generate(Math::random)
                 .limit(5)
                 .forEach(System.out::println);
+    }
+
+    public static void testCount(List<Dish> dishes) {
+        var count = dishes.stream().collect(Collectors.counting());
+        System.out.println(count);
+
+        var maxCaloriedDish = dishes.stream().collect(Collectors.maxBy(Comparator.comparingInt(Dish::getCalories)));
+        maxCaloriedDish.ifPresent(System.out::println);
+
+    }
+
+    public static void testManipulatingGrouppedElements(List<Dish> dishes) {
+        var groupped = dishes.stream()
+                .filter(d -> d.getCalories() > 500)
+                .collect(Collectors.groupingBy(Dish::getType));
+        System.out.println(groupped);
+
+        groupped = dishes.stream()
+                .collect(Collectors.groupingBy(
+                        Dish::getType,
+                        Collectors.filtering(dish -> dish.getCalories() > 500, Collectors.toList())
+                ));
+
+        System.out.println(groupped);
+    }
+
+    public static void testMultilevelGroupping(List<Dish> dishes) {
+        var collected = dishes.stream()
+                .collect(Collectors.groupingBy(Dish::getType,
+                        Collectors.groupingBy(dish -> {
+                            if (dish.getCalories() <= 400) {
+                                return "DIET";
+                            } else if (dish.getCalories() <= 600) {
+                                return "NORMAL";
+                            } else {
+                                return "FAT";
+                            }
+                        }, Collectors.mapping(Dish::getName,toList()))));
+        var map = collected.get(Dish.Type.MEAT).get("NORMAL");
+    }
+
+    public static void testCollectingDataInSubGroups(List<Dish> dishes) {
+        var collectedWithCounts = dishes.stream()
+                .collect(Collectors.groupingBy(Dish::getType, counting()));
+        System.out.println(collectedWithCounts);
+
+        var collectedWithMaxes = dishes.stream()
+                .collect(
+                        groupingBy(Dish::getType,
+                                maxBy(Comparator.comparingInt(Dish::getCalories))
+                        )
+                );
+        System.out.println(collectedWithMaxes);
+        var colletedAndThen = dishes.stream()
+                .collect(
+                        groupingBy(Dish::getType,
+                                collectingAndThen(
+                                        maxBy(Comparator.comparingInt(Dish::getCalories)),
+                                        Optional::get
+                                )
+                        )
+                );
+        System.out.println(colletedAndThen);
     }
 }
